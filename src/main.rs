@@ -1,16 +1,19 @@
 use std::process::Command;
 use std::fs::OpenOptions;
-use std::io::prelude::*;
 use text_colorizer::*;
 
 
 
-//for readability in main function if else branch
-#[derive(PartialEq)]
-enum InputChoice{
-    new_cgroup,
-    add_pid_cgroup,
+struct UserChoice {
 }
+
+impl UserChoice {
+    const NEWCGROUP: &'static str = "0";
+    const ADDPID: &'static str = "1";
+    const SETMAXMEM: &'static str = "2";
+}
+
+
 
 //note input.clear() is necessary to clear input buffer
 //and input.pop removes unwanted new line
@@ -19,20 +22,20 @@ fn main() {
     loop {
 
         //get user input
-        println!("What would you like to do? \n(0) Create cgroup \n(1) Add to existing cgroup?\n");
+        println!("What would you like to do? \n(0) Create cgroup \n(1) Add to existing cgroup?\n(2) Set max memory for cgroup?\n");
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
         input.pop();
 
-        //create new cgroup
-        if input.parse::<u8>().unwrap() == InputChoice::new_cgroup as u8 {
+        //figure out user choice and perform action based
+        //on further input
+        if input == UserChoice::NEWCGROUP {
             println!("Enter new cgroup name:");
             input.clear();
             std::io::stdin().read_line(&mut input).unwrap();
             input.pop();
             create_cgroup(&input);
-        //add pid to cgroup
-        }else if input.parse::<u8>().unwrap() == InputChoice::add_pid_cgroup as u8{
+        }else if input == UserChoice::ADDPID {
             println!("Enter pid followed by a space followed by cgroup name:");
             input.clear();
             std::io::stdin().read_line(&mut input).unwrap();
@@ -41,6 +44,15 @@ fn main() {
             let pid = pid_and_cgroup[0];
             let cgroup = pid_and_cgroup[1];
             add_pid_to_cgroup(pid, cgroup);
+        }else if input == UserChoice::SETMAXMEM {
+            println!("Enter max memory in bytes followed by a space followe by cgroup name:");
+            input.clear();
+            std::io::stdin().read_line(&mut input).unwrap();
+            input.pop();
+            let bytes_and_cgroup: Vec<&str> = input.split(" ").collect();
+            let bytes = bytes_and_cgroup[0];
+            let cgroup = bytes_and_cgroup[1];
+            change_mem_max_for_cgroup(bytes, cgroup);
         }else{
             println!("\nError unknown choice please try again\n");
             input.clear();
