@@ -1,8 +1,13 @@
 use std::process::Command;
 use std::fs::OpenOptions;
 use text_colorizer::*;
+use std::io::prelude::*;
+
+pub mod timeget;
+use timeget::*;
 
 
+static LOGDIR: &str = "/home/logan/Desktop/log";
 
 struct UserChoice {
 }
@@ -14,10 +19,84 @@ impl UserChoice {
 }
 
 
+struct CpuCgroup {}
+struct MemCgroup {}
+struct PidCgroup {}
+
+struct CgroupInfo<T> {
+    _type: T,
+    name: String,
+}
+
+
+
+//functions for a cgroup using
+//the memory controller
+impl CgroupInfo<MemCgroup> {
+
+    fn new(cgroup: String) -> Self {
+        CgroupInfo {_type: MemCgroup{}, name: cgroup}
+    }
+
+    fn get_current_mem(&self) -> String{
+        let output = Command::new("/bin/cat")
+                        .arg(format!("/sys/fs/cgroup/{}/memory.current", self.name))
+                        .output()
+                        .expect("failed to execute get_current_mem for cgroup {self.name}");
+
+        let s = match std::str::from_utf8(&output.stdout) {
+            Ok(v) => v,
+            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+        };
+
+        // println!("result: {}", s);
+
+        s.to_string()
+
+    }
+
+    fn write_current_mem_to_file(&self) {
+
+        let file_data = self.get_current_mem();
+        let timestamp = generate_timestamp_string();
+
+        println!("{}",format!("{LOGDIR}/{}/memory.current", &self.name));
+
+        let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .append(true)
+        .open(format!("{LOGDIR}/{}/memory.current", &self.name))
+        .unwrap();
+
+        if let Err(e) = write!(file, "{}", format!("{} {}", timestamp, file_data)) {
+            eprintln!("Couldn't write to file: {}", e);
+        }
+    }
+}
+
+
+
+
+
+
 
 //note input.clear() is necessary to clear input buffer
 //and input.pop removes unwanted new line
 fn main() {
+
+    let hours_mins_secs = get_hours_mins_secs();
+    println!("hours mins secs {}, {}, {}", hours_mins_secs.0, hours_mins_secs.1, hours_mins_secs.2);
+
+    // let test = CgroupInfo::<MemCgroup>{_type: MemCgroup{}, name:"bloopy".to_string()};
+
+    let test2 = CgroupInfo::<MemCgroup>::new("bloopy".to_string());
+
+    test2.get_current_mem();
+
+    println!("{}", generate_timestamp_string());
+
+    test2.write_current_mem_to_file();
 
     loop {
 
@@ -129,6 +208,7 @@ fn change_mem_max_for_cgroup(bytes: &str, cgroup: &str) -> Result<(), &'static s
     }
         
 }
+
 
 
 
