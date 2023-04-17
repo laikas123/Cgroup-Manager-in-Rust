@@ -2,9 +2,17 @@ use std::process::Command;
 use std::fs::OpenOptions;
 use text_colorizer::*;
 use std::io::prelude::*;
+use std::collections::HashMap;
 
 pub mod timeget;
 use timeget::*;
+
+
+//keys for files HashMap
+const CURRENT: &'static str = "current";
+const MIN: &'static str = "min";
+const MAX: &'static str = "max";
+const STAT: &'static str = "stat";
 
 
 static LOGDIR: &str = "/home/logan/Desktop/log";
@@ -18,61 +26,140 @@ impl UserChoice {
     const SETMAXMEM: &'static str = "2";
 }
 
-
 struct CpuCgroup {}
 struct MemCgroup {}
 struct PidCgroup {}
 
-struct CgroupInfo<T> {
+struct CgroupFiles<T>{
     _type: T,
-    name: String,
 }
 
+impl CgroupFiles<CpuCgroup> {
+    const STAT: &'static str = "cpu.stat";
+}
 
+impl CgroupFiles<MemCgroup> {
+    const CURRENT: &'static str = "memory.current";
+    const MIN: &'static str = "memory.min";
+    const MAX: &'static str = "memory.max";
+    const STAT: &'static str = "memory.stat";
+}
 
-//functions for a cgroup using
-//the memory controller
-impl CgroupInfo<MemCgroup> {
+impl CgroupFiles<PidCgroup> {
+    const CURRENT: &'static str = "pids.current";
+    const MAX: &'static str = "pids.max";
+}
 
-    fn new(cgroup: String) -> Self {
-        CgroupInfo {_type: MemCgroup{}, name: cgroup}
-    }
+enum CgroupTypes{
+    cpu,
+    mem,
+    pid
+}
 
-    fn get_current_mem(&self) -> String{
-        let output = Command::new("/bin/cat")
-                        .arg(format!("/sys/fs/cgroup/{}/memory.current", self.name))
-                        .output()
-                        .expect("failed to execute get_current_mem for cgroup {self.name}");
+struct CgroupInfo {
+    name: String,
+    ctype: CgroupTypes,
+    files: HashMap<String, String>
+}
 
-        let s = match std::str::from_utf8(&output.stdout) {
-            Ok(v) => v,
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        };
+impl CgroupInfo {
 
-        // println!("result: {}", s);
-
-        s.to_string()
-
-    }
-
-    fn write_current_mem_to_file(&self) {
-
-        let file_data = self.get_current_mem();
-        let timestamp = generate_timestamp_string();
-
-        println!("{}",format!("{LOGDIR}/{}/memory.current", &self.name));
-
-        let mut file = OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .append(true)
-        .open(format!("{LOGDIR}/{}/memory.current", &self.name))
-        .unwrap();
-
-        if let Err(e) = write!(file, "{}", format!("{} {}", timestamp, file_data)) {
-            eprintln!("Couldn't write to file: {}", e);
+    fn new(name: String, ctype: CgroupTypes) -> Self {
+        
+        let mut files = HashMap::new();
+        
+        match ctype {
+            CgroupTypes::cpu  => {
+                files.insert(STAT.to_string(), "cpu.stat".to_string());
+                CgroupInfo{name: name, ctype: CgroupTypes::cpu, files: files}
+            },
+            CgroupTypes::mem => {
+                files.insert(CURRENT.to_string(), "memory.current".to_string());
+                files.insert(MIN.to_string(), "memory.min".to_string());
+                files.insert(MAX.to_string(), "memory.max".to_string());
+                files.insert(STAT.to_string(), "memory.stat".to_string());
+                CgroupInfo{name: name, ctype: CgroupTypes::mem, files: files}
+            }
+            CgroupTypes::pid => {
+                files.insert(CURRENT.to_string(), "pids.current".to_string());
+                files.insert(MAX.to_string(), "pids.max".to_string());
+                CgroupInfo{name: name, ctype: CgroupTypes::pid, files: files}
+            }
         }
     }
+
+
+    fn get(&self, filekey: &str) -> Result<String, &'static str>{
+
+        match self.files.get(filekey) {
+            Some(filename) => {
+                let output = Command::new("/bin/cat")
+                        .arg(format!("/sys/fs/cgroup/{}/{}", self.name, filename))
+                        .output()
+                        .expect("failed to execute get_current for cgroup {self.name}");
+
+
+                println!("{}", format!("/sys/fs/cgroup/{}/{}", filename, self.name));
+
+                let s = match std::str::from_utf8(&output.stdout) {
+                    Ok(v) => v,
+                    Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                };
+                Ok(s.to_string())
+            },
+            None => {
+                Err("Cgroup {self.name}, doesn't have file for key {filekey}")
+            },
+        }
+
+    
+
+        
+
+    }
+
+    fn set(&self, filekey: &str, val: &str) -> Result<(), &'static str>{
+        
+        match self.files.get(filekey) {
+            Some(filename) => {
+                let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .append(true)
+                .open(format!("/sys/fs/cgroup/{}/{}", &self.name, filename))
+                .unwrap();
+
+                if let Err(e) = write!(file, "{}", val) {
+                    eprintln!("Couldn't write to file: {}", e);
+                }
+                Ok(())
+            },
+            None => {
+                Err("Cgroup {self.name}, doesn't have file for key {filekey}")
+            },
+        }
+
+        
+    }
+
+    // fn log_current(&self) {
+
+    //     let file_data = self.get_current();
+    //     let timestamp = generate_timestamp_string();
+
+    //     println!("{}",format!("{LOGDIR}/{}/memory.current", &self.name));
+
+    //     let mut file = OpenOptions::new()
+    //     .create(true)
+    //     .write(true)
+    //     .append(true)
+    //     .open(format!("{LOGDIR}/{}/memory.current", &self.name))
+    //     .unwrap();
+
+    //     if let Err(e) = write!(file, "{}", format!("{} {}", timestamp, file_data)) {
+    //         eprintln!("Couldn't write to file: {}", e);
+    //     }
+    // }
 }
 
 
@@ -90,13 +177,22 @@ fn main() {
 
     // let test = CgroupInfo::<MemCgroup>{_type: MemCgroup{}, name:"bloopy".to_string()};
 
-    let test2 = CgroupInfo::<MemCgroup>::new("bloopy".to_string());
+    let test2 = CgroupInfo::new("bloopy".to_string(), CgroupTypes::mem);
 
-    test2.get_current_mem();
+
+    match test2.get(CURRENT){
+        Ok(my_str) => println!("yippee {}", my_str),
+        _ => println!("Empty File or Not Found"),
+    } 
+
+    test2.set(MAX, "30000");
 
     println!("{}", generate_timestamp_string());
 
-    test2.write_current_mem_to_file();
+
+
+
+    // test2.log_current();
 
     loop {
 
