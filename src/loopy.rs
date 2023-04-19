@@ -249,7 +249,7 @@ pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<
     let mut cgroup_index = 0;
     let mut cgroup_index_tuple_vec = Vec::new();
 
-    //see which cgroup user wants to read from
+    //see which cgroup user wants to update
     print!("\n{}", "Available Cgroups:\n".blue());
     for cgroup in &mut *cgroups {
         println!("({}) {} ", cgroup_index, cgroup.name);
@@ -497,22 +497,29 @@ pub fn modify_controllers_loop(current_controllers: Option<&mut Vec<String>>) ->
 
 //to add pid to a cgroup
 pub fn add_pid_loop(cgroups: &mut Vec<Cgroup>) {
+    let mut cgroup_index = 0;
+    let mut cgroup_index_tuple_vec = Vec::new();
+
     //see which cgroup user wants to choose from
-    print!("\n{}: ", "Available Cgroups: ".blue());
+    print!("\n{}", "Available Cgroups:\n".blue());
     for cgroup in &mut *cgroups {
-        print!("{} ", cgroup.name);
+        println!("({}) {} ", cgroup_index, cgroup.name);
+        cgroup_index_tuple_vec.push((cgroup_index, cgroup.name.to_string()));
+        cgroup_index += 1;
     }
     let mut found = 0;
     let mut cgroup = String::new();
+    let mut user_index = String::new();
     while found == 0 {
-        println!("\n\nType the name of the cgroup you wish to add pid to(type .. to go back):");
-        cgroup = get_user_input(cgroup);
-        if cgroup == ".." {
+        println!("\n\nType the number corresponding to the cgroup you wish to read from (type .. to go back):");
+        user_index = get_user_input(user_index);
+        if user_index == ".." {
             return;
         }
-        for i in 0..cgroups.len() {
-            if cgroup == cgroups[i].name{
+        for i in 0..cgroup_index_tuple_vec.len() {
+            if user_index == cgroup_index_tuple_vec[i].0.to_string(){
                 found = 1;
+                cgroup = cgroup_index_tuple_vec[i].1.to_string();
                 break;
             }
         }
