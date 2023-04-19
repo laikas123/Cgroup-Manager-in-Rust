@@ -5,6 +5,8 @@ use super::cgroup::*;
 use super::globals::*;
 use std::fs::OpenOptions; 
 use std::io::Write;
+use std::fs::File;
+use std::io::{ self, BufRead, BufReader };
 
 pub fn read_file_contents(file_path: &str) -> Result<String, &'static str>  {
 
@@ -16,6 +18,15 @@ pub fn read_file_contents(file_path: &str) -> Result<String, &'static str>  {
     }
    
 }
+
+//returns an iterator over the lines of a file
+pub fn read_lines(filename: String) -> io::Lines<BufReader<File>> {
+    // Open the file in read-only mode.
+    let file = File::open(filename).unwrap(); 
+    // Read the file line by line, and return an iterator of the lines of the file.
+    return io::BufReader::new(file).lines(); 
+}
+
 
 pub fn update_file_contents(file_path: &str, val: &str) -> Result<(), &'static str>  {
 
@@ -131,9 +142,14 @@ pub fn remove_cgroup(name: &str) -> Option<Cgroup>{
 }
 
 
-pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
 
-    
+
+//creates a file string of the form
+//rmdir {path_cgroup1} && rmdir {path_cgroup2}...
+//to allow for bulk deletion of cgroups as specified
+//in existing_cgroups.json additionally updates 
+//existing cgroups.json so that 
+pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
 
     let mut command_string = "rmdir ".to_string();
 
@@ -157,7 +173,6 @@ pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
         }
     }
     
-
     let status = RootCommand::new("sh")
                 .arg("-c")
                 .arg(command_string)
@@ -175,6 +190,45 @@ pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
         },
         _  => (),
     }
+
+    println!("{:?}", cgroups);
+
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open("./existing_cgroups.json")
+        .unwrap();
+
+    
+
+    //read contents of json file before modifying
+    let lines = read_lines("./existing_cgroups.json".to_string());
+
+    drop(file);
+
+    fs::remove_file("existing_cgroups.json").expect("Couldn't delete existing_cgroups.json");
+
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open("./existing_cgroups.json")
+        .unwrap();
+
+    //only add cgroups that weren't deleted
+    for line in lines {
+
+        // println!("{}", line.unwrap());
+        let deserialized: Cgroup = serde_json::from_str(&line.unwrap()).unwrap();
+        
+        println!("{:?}", deserialized);
+        
+        
+        if deserialized.delete == 0 {
+            writeln!(file, "{{\"name\":\"{}\",\"delete\":{}}}", deserialized.name, deserialized.delete).expect("couldn't rewrite to existing_cgroups.json");
+        }
+    }
+
+
 
 }
 

@@ -4,6 +4,8 @@ use std::thread;
 use std::fs::File;
 use std::fs;
 use std::io::{ self, BufRead, BufReader };
+use std::fs::OpenOptions;
+use std::io::Write;
 
 pub mod moddy;
 use moddy::*;
@@ -26,18 +28,18 @@ use globals::*;
 //and input.pop removes unwanted new line
 fn main() {
 
-    ctrlc::set_handler(move || {
-        println!("received Ctrl+C!");
-        process::exit(1);
-
-    })
-    .expect("Error setting Ctrl-C handler");
+    
+    
 
     let mut active_controllers = print_startup_info_modify_controllers();
 
     let mut cgroups: Vec<Cgroup> = Vec::new();
 
+    let cgroups_ref = &cgroups;
+
     add_remove_existing_cgroups(&mut cgroups);
+
+    
 
     loop {
         match top_level_loop(&mut cgroups, &mut active_controllers){
@@ -46,6 +48,7 @@ fn main() {
                     cgroups.push(new_cgroup);
                 }else if &new_cgroup.name == ">>" {
                     println!("{}", "Exiting cleanly".blue());
+                    file_cleanup(&cgroups);
                     process::exit(0);
                 }else{
                     for i in 0..cgroups.len(){
@@ -64,8 +67,8 @@ fn main() {
 
 }
 
-//TODO TOMORROW
-//add the serde stuff
+//TODO
+//make sure that on single creates and deletes the .json file is up to date... Since handling ctrl+c is a pain...
 //finish documenting and put a bow on it for now
 
 fn print_startup_info_modify_controllers() -> Vec<String> {
@@ -86,13 +89,6 @@ fn print_startup_info_modify_controllers() -> Vec<String> {
 }
 
 
-//returns an iterator over the lines of a file
-fn read_lines(filename: String) -> io::Lines<BufReader<File>> {
-    // Open the file in read-only mode.
-    let file = File::open(filename).unwrap(); 
-    // Read the file line by line, and return an iterator of the lines of the file.
-    return io::BufReader::new(file).lines(); 
-}
 
 //runs on startup, used to import existing cgroups 
 //to be managed, and delete those the user no longer wants
@@ -158,19 +154,32 @@ fn add_remove_existing_cgroups(cgroups: &mut Vec<Cgroup>) {
     }
 
     
-
-
-
-    // let test = Cgroup::new("blah".to_string());
-    // let serialized = serde_json::to_string(&test).unwrap();
-    // println!("serialized = {}", serialized);
 }
 
 
 //runs on shutdown either from clean user controlled input
 //or when receiving a ctrl+c (a.k.a. SIGINT signal)
-fn file_cleanup() {
+fn file_cleanup(cgroups: & Vec<Cgroup>) {
+    
+    
+    //delete existing file since cgroups is the most up to date
+    fs::remove_file("existing_cgroups.json").expect("Couldn't delete existing_cgroups.json");
 
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open("./existing_cgroups.json")
+        .unwrap();
+
+    //recreate file with up to date data
+    for cgroup in cgroups {
+
+        writeln!(file, "{{\"name\":\"{}\",\"delete\":{}}}", cgroup.name, cgroup.delete).expect("couldn't rewrite to existing_cgroups.json");
+        
+    }
+
+        
+    
 }
 
 

@@ -8,7 +8,7 @@ use super::globals::*;
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Cgroup {
     pub name: String,
     pub delete: u8,

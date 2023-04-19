@@ -67,7 +67,8 @@ pub fn top_level_loop(cgroups: &mut Vec<Cgroup>, controllers: &mut Vec<String>) 
                 }else if input == UserChoice::GOBACK4{
                     break;
                 }else{
-
+                    println!("\nUnknown input please try again..\n");
+                    continue;
                 }
             }
             return None;
