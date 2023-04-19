@@ -18,6 +18,7 @@ logan. In the globals.rs file these can be set as seen below.
 <br>
 <br>
 <img src="https://drive.google.com/uc?export=view&id=1xIG15rMXinCONXqzJQEepkrWdXFevU1Q">
+![alt text](https://drive.google.com/uc?export=view&id=1xIG15rMXinCONXqzJQEepkrWdXFevU1Q)
 
 
 These are used by the program as follows:
