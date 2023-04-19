@@ -191,6 +191,8 @@ pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
         _  => (),
     }
 
+
+    
     println!("{:?}", cgroups);
 
     let mut file = OpenOptions::new()
@@ -230,6 +232,33 @@ pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
 
 
 
+}
+
+
+
+//runs on shutdown either from clean user controlled input
+//or when receiving a ctrl+c (a.k.a. SIGINT signal)
+pub fn file_cleanup(cgroups: & Vec<Cgroup>) {
+    
+    
+    //delete existing file since cgroups is the most up to date
+    fs::remove_file("existing_cgroups.json").expect("Couldn't delete existing_cgroups.json");
+
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open("./existing_cgroups.json")
+        .unwrap();
+
+    //recreate file with up to date data
+    for cgroup in cgroups {
+
+        writeln!(file, "{{\"name\":\"{}\",\"delete\":{}}}", cgroup.name, cgroup.delete).expect("couldn't rewrite to existing_cgroups.json");
+        
+    }
+
+        
+    
 }
 
 

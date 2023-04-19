@@ -15,7 +15,7 @@ that need to be configured. They are the root cgroup directory which by default 
 /sys/fs/cgroup on Ubuntu 22.04, and the second is your username which by default is mine,
 logan. In the globals.rs file these can be set as seen below.
 
-<br>
+
 <br>
 <img src="https://drive.google.com/uc?export=view&id=1xIG15rMXinCONXqzJQEepkrWdXFevU1Q">
 
@@ -39,5 +39,7 @@ it will chown this directory so that USERNAME is the owner. This let's subsequen
 to the directory be done by the user so you don't need to constantly use sudo.
 
 
+<h3>Using the Program</h3>
 
+With this in mind using the program is pretty straight forward. The initial greeting screen. 
 

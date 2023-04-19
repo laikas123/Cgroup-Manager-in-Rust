@@ -46,6 +46,7 @@ fn main() {
             Some(new_cgroup) => {
                 if new_cgroup.delete == 0 && &new_cgroup.name != ">>" {
                     cgroups.push(new_cgroup);
+                    file_cleanup(&cgroups);
                 }else if &new_cgroup.name == ">>" {
                     println!("{}", "Exiting cleanly".blue());
                     file_cleanup(&cgroups);
@@ -57,6 +58,7 @@ fn main() {
                             break;
                         }
                     }
+                    file_cleanup(&cgroups);
                 }
             },
             _ => continue,
@@ -68,9 +70,11 @@ fn main() {
 }
 
 //TODO
-//make sure that on single creates and deletes the .json file is up to date... Since handling ctrl+c is a pain...
+//remove unnecessary files from github
+//make sure no warning messages are present when running
+//add the global directory to src so that it knows where to look for the .json file
+//make it easier to choose from files for update and read options
 //finish documenting and put a bow on it for now
-
 fn print_startup_info_modify_controllers() -> Vec<String> {
 
     println!("\n\n\n{}", "Starting up...".purple());
@@ -157,30 +161,7 @@ fn add_remove_existing_cgroups(cgroups: &mut Vec<Cgroup>) {
 }
 
 
-//runs on shutdown either from clean user controlled input
-//or when receiving a ctrl+c (a.k.a. SIGINT signal)
-fn file_cleanup(cgroups: & Vec<Cgroup>) {
-    
-    
-    //delete existing file since cgroups is the most up to date
-    fs::remove_file("existing_cgroups.json").expect("Couldn't delete existing_cgroups.json");
 
-    let mut file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .open("./existing_cgroups.json")
-        .unwrap();
-
-    //recreate file with up to date data
-    for cgroup in cgroups {
-
-        writeln!(file, "{{\"name\":\"{}\",\"delete\":{}}}", cgroup.name, cgroup.delete).expect("couldn't rewrite to existing_cgroups.json");
-        
-    }
-
-        
-    
-}
 
 
 
