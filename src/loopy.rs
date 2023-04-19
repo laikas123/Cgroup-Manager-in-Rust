@@ -14,10 +14,12 @@ impl UserChoice {
     const MANAGECONTROLLERS: &'static str = "0";
     const CREATECGROUP: &'static str = "1";
     const MANAGECGROUP: &'static str = "2";
+    const EXIT3: &'static str = "3";
     const READCGROUPSETTING: &'static str = "0";
     const UPDATECGROUPSETTING: &'static str = "1";
     const DELETECGROUP: &'static str = "2";
-    const GOBACK3: &'static str = "3";
+    const ADDPID: &'static str = "3";
+    const GOBACK4: &'static str = "4";
 }
 
 
@@ -36,12 +38,12 @@ pub fn top_level_loop(cgroups: &mut Vec<Cgroup>, controllers: &mut Vec<String>) 
     loop {
 
         //get user input
-        println!("{} \n(0) Manage Controllers \n(1) Create a Cgroup?\n(2) Manage a Cgroup?\n", "What would you like to do?".blue());
+        println!("{} \n(0) Manage Controllers? \n(1) Create a Cgroup?\n(2) Manage a Cgroup? \n(3) Exit? \n", "What would you like to do?".blue());
         input = get_user_input(input);
 
         //act based on user choice
         if input == UserChoice::MANAGECONTROLLERS {
-
+            modify_controllers_loop(Some(controllers));
             return None;
         }else if input == UserChoice::CREATECGROUP{
             println!("Enter new cgroup name:");
@@ -52,21 +54,27 @@ pub fn top_level_loop(cgroups: &mut Vec<Cgroup>, controllers: &mut Vec<String>) 
             }
         }else if input == UserChoice::MANAGECGROUP {
             loop{
-                println!("{} \n(0) Read Cgroup Setting \n(1) Update Cgroup Setting?\n(2) Delete Cgroup? \n(3) Go Back()\n", "What would you like to do?".blue());
+                println!("{} \n(0) Read Cgroup Setting? \n(1) Update Cgroup Setting?\n(2) Delete Cgroup? \n(3) Add pid to cgroup? \n(4) Go Back?\n", "What would you like to do?".blue());
                 input = get_user_input(input);
                 if input == UserChoice::READCGROUPSETTING {
                     read_cgroup_settings_loop(cgroups, controllers);
                 }else if input == UserChoice::UPDATECGROUPSETTING {
                     update_cgroup_settings_loop(cgroups, controllers);
                 }else if input == UserChoice::DELETECGROUP {
-                    delete_cgroup_loop(cgroups);
-                }else if input == UserChoice::GOBACK3{
+                    return delete_cgroup_loop(cgroups);
+                }else if input == UserChoice::ADDPID{
+                    add_pid_loop(cgroups);
+                }else if input == UserChoice::GOBACK4{
                     break;
                 }else{
 
                 }
             }
             return None;
+        //return cgroup with impossible name
+        //to confirm exit
+        }else if input == UserChoice::EXIT3{
+            return Some(Cgroup::new(">>".to_string()));
         }else{
             println!("\n{} unknown choice please try again\n", "Error".red());
             continue;
@@ -88,8 +96,11 @@ pub fn read_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<St
     let mut found = 0;
     let mut controller = String::new();
     while found == 0 {
-        println!("\n\nType the name of the controller you wish to read from:");
+        println!("\n\nType the name of the controller you wish to read from (type .. to go back):");
         controller = get_user_input(controller);
+        if controller == ".." {
+            return;
+        }
         for elem in controllers{
             println!("{}", *elem);
             if controller == *elem{
@@ -111,8 +122,11 @@ pub fn read_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<St
     found = 0;
     let mut cgroup = String::new();
     while found == 0 {
-        println!("\n\nType the name of the cgroup you wish to read from:");
+        println!("\n\nType the name of the cgroup you wish to read from (type .. to go back):");
         cgroup = get_user_input(cgroup);
+        if cgroup == ".." {
+            return;
+        }
         for i in 0..cgroups.len() {
             if cgroup == cgroups[i].name{
                 found = 1;
@@ -149,8 +163,11 @@ pub fn read_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<St
     found = 0;
     let mut s_file = String::new();
     while found == 0 {
-        println!("\n\nType the name of the settings file you wish to read from:");
+        println!("\n\nType the name of the settings file you wish to read from (type .. to go back):");
         s_file = get_user_input(s_file);
+        if s_file == ".." {
+            return;
+        }
         for i in 0..filtered_paths.len() {
             if s_file == *filtered_paths[i]{
                 found = 1;
@@ -165,7 +182,7 @@ pub fn read_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<St
 
 
     match read_file_contents(&s_file) {
-        Ok(contents) => println!("\n{}", contents),
+        Ok(contents) => println!("\n{}{}", contents, "Value is: ".green()),
         _ => println!("No data from file {s_file}"),
     }
 
@@ -183,8 +200,11 @@ pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<
     let mut found = 0;
     let mut controller = String::new();
     while found == 0 {
-        println!("\n\nType the name of the controller you wish to read from:");
+        println!("\n\nType the name of the controller you wish to read from (type .. to go back):");
         controller = get_user_input(controller);
+        if controller == ".." {
+            return;
+        }
         for elem in controllers{
             println!("{}", *elem);
             if controller == *elem{
@@ -206,8 +226,11 @@ pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<
     found = 0;
     let mut cgroup = String::new();
     while found == 0 {
-        println!("\n\nType the name of the cgroup you wish to read from:");
+        println!("\n\nType the name of the cgroup you wish to read from (type .. to go back):");
         cgroup = get_user_input(cgroup);
+        if cgroup == ".." {
+            return;
+        }
         for i in 0..cgroups.len() {
             if cgroup == cgroups[i].name{
                 found = 1;
@@ -244,8 +267,11 @@ pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<
     found = 0;
     let mut s_file = String::new();
     while found == 0 {
-        println!("\n\nType the name of the settings file you wish to read from:");
+        println!("\n\nType the name of the settings file you wish to read from (type .. to go back):");
         s_file = get_user_input(s_file);
+        if s_file == ".." {
+            return;
+        }
         for i in 0..filtered_paths.len() {
             if s_file == *filtered_paths[i]{
                 found = 1;
@@ -270,7 +296,7 @@ pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<
 }
 
 
-fn delete_cgroup_loop(cgroups: &mut Vec<Cgroup>) {
+fn delete_cgroup_loop(cgroups: &mut Vec<Cgroup>) -> Option<Cgroup> {
     //see which cgroup user wants to  delete
     print!("\n{}: ", "Available Cgroups: ".blue());
     for cgroup in &mut *cgroups {
@@ -279,8 +305,11 @@ fn delete_cgroup_loop(cgroups: &mut Vec<Cgroup>) {
     let mut found = 0;
     let mut cgroup = String::new();
     while found == 0 {
-        println!("\n\nType the name of the cgroup you wish to read delete:");
+        println!("\n\nType the name of the cgroup you wish to read delete (type .. to go back):");
         cgroup = get_user_input(cgroup);
+        if cgroup == ".." {
+            return None;
+        }
         for i in 0..cgroups.len() {
             if cgroup == cgroups[i].name{
                 found = 1;
@@ -293,15 +322,13 @@ fn delete_cgroup_loop(cgroups: &mut Vec<Cgroup>) {
         }
     }
 
-    remove_cgroup(&cgroup);
+    remove_cgroup(&cgroup)
 
 }
 
 
 
-
-
-pub fn modify_controllers_loop(current_controllers: mut Option<Vec<String>>) -> Vec<String> {
+pub fn modify_controllers_loop(current_controllers: Option<&mut Vec<String>>) -> Option<Vec<String>> {
 
     let mut avail_controllers: String = "".to_string();
 
@@ -384,17 +411,40 @@ pub fn modify_controllers_loop(current_controllers: mut Option<Vec<String>>) -> 
         
     // }
 
-    //return the active controllers
-    let active = get_text_separated_by_substring(" ", &active_controllers);
-
-    match active{
-        Ok(active_controller_vec) =>  active_controller_vec,
-        _ => {
-            println!("{} could not get active controllers... Terminating", "Error".red());
-            process::exit(1);
+    match current_controllers {
+        Some(mut_input) => {
+            mut_input.clear();
+            let active = get_text_separated_by_substring(" ", &active_controllers);
+            match active{
+                Ok(active_controller_vec) =>  {
+                    for elem in active_controller_vec {
+                        mut_input.push(elem);
+                    }
+                    None
+                },
+                _ => {
+                    println!("{} could not get active controllers... Terminating", "Error".red());
+                    process::exit(1);
+                },
+        
+            }
         },
+        None => {
+            //return the active controllers
+            let active = get_text_separated_by_substring(" ", &active_controllers);
 
+            match active{
+                Ok(active_controller_vec) =>  Some(active_controller_vec),
+                _ => {
+                    println!("{} could not get active controllers... Terminating", "Error".red());
+                    process::exit(1);
+                },
+
+            }
+        },
     }
+
+    
 
     
 
@@ -405,3 +455,45 @@ pub fn modify_controllers_loop(current_controllers: mut Option<Vec<String>>) -> 
 
 
 
+pub fn add_pid_loop(cgroups: &mut Vec<Cgroup>) {
+    //see which cgroup user wants to choose from
+    print!("\n{}: ", "Available Cgroups: ".blue());
+    for cgroup in &mut *cgroups {
+        print!("{} ", cgroup.name);
+    }
+    let mut found = 0;
+    let mut cgroup = String::new();
+    while found == 0 {
+        println!("\n\nType the name of the cgroup you wish to add pid to(type .. to go back):");
+        cgroup = get_user_input(cgroup);
+        if cgroup == ".." {
+            return;
+        }
+        for i in 0..cgroups.len() {
+            if cgroup == cgroups[i].name{
+                found = 1;
+                break;
+            }
+        }
+
+        if found == 0 {
+            println!("Unkown choice please try again");
+        }
+    }
+
+    let mut pid = String::new();
+    loop {
+        println!("\n\nType the pid to add to {} (type 000 to go back):", cgroup);
+        pid = get_user_input(pid);
+        let all_digits = pid.chars().all(char::is_numeric);
+        if all_digits {
+            if pid == "000" {
+                return;
+            }else{
+                append_pid_command(&pid, &cgroup);
+            }
+        }else{
+            println!("Invalid pid string, only numbers allowed... Please try again")
+        }
+    }
+}

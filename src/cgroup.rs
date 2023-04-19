@@ -3,9 +3,12 @@ use std::process::Command;
 use std::fs::OpenOptions;   
 use runas::Command as RootCommand;
 use std::io::Write;
+use serde::{Serialize, Deserialize};
 use super::globals::*;
 
-#[derive(Debug)]
+
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Cgroup {
     pub name: String,
     pub delete: u8,
@@ -60,9 +63,9 @@ impl Cgroup {
     pub fn add_pid(&self, pid: &str) -> Result<(), &'static str> {
         let status = RootCommand::new("sh")
                         .arg("-c")
-                        .arg(format!("./add_pid_cgroup.sh {} {}", pid, &self.name))
+                        .arg(format!("echo {} > \"/sys/fs/cgroup/{}/cgroup.procs\"", pid, &self.name))
                         .status()
-                        .expect("failed to execute add_pid_cgroup.sh");
+                        .expect("failed to add pid to cgroup");
 
         // println!("add_pid_cgroup.sh {} {}", pid, &self.name);
         match status.code() {
