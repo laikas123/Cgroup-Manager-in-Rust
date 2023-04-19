@@ -55,7 +55,7 @@ pub fn top_level_loop(cgroups: &mut Vec<Cgroup>, controllers: &mut Vec<String>) 
             }
         }else if input == UserChoice::MANAGECGROUP {
             loop{
-                println!("{} \n(0) Read Cgroup Setting? \n(1) Update Cgroup Setting?\n(2) Delete Cgroup? \n(3) Add pid to cgroup? \n(4) Go Back?\n", "What would you like to do?".blue());
+                println!("{} \n(0) Read Cgroup Setting? \n(1) Update Cgroup Setting?\n(2) Delete Cgroup? \n(3) Add pid to Cgroup? \n(4) Go Back?\n", "What would you like to do?".blue());
                 input = get_user_input(input);
                 if input == UserChoice::READCGROUPSETTING {
                     read_cgroup_settings_loop(cgroups, controllers);

@@ -130,7 +130,7 @@ fn add_remove_existing_cgroups(cgroups: &mut Vec<Cgroup>) {
     if delete_list.len() != 0 {
         println!("\n\n{}", "Cgroups to delete: ".truecolor(255, 165, 0));
         for cgroup in &delete_list {
-            print!(" {}", cgroup);
+            print!("{} ", cgroup);
         }
         
         loop{
