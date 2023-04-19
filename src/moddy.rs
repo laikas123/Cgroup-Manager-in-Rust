@@ -8,6 +8,8 @@ use std::io::Write;
 use std::fs::File;
 use std::io::{ self, BufRead, BufReader };
 
+
+//read file contents to string
 pub fn read_file_contents(file_path: &str) -> Result<String, &'static str>  {
 
     let read_result = fs::read_to_string(file_path);
@@ -28,6 +30,7 @@ pub fn read_lines(filename: String) -> io::Lines<BufReader<File>> {
 }
 
 
+//update a file by writing to it
 pub fn update_file_contents(file_path: &str, val: &str) -> Result<(), &'static str>  {
 
     let mut file = OpenOptions::new()
@@ -39,18 +42,18 @@ pub fn update_file_contents(file_path: &str, val: &str) -> Result<(), &'static s
 
         // println!("{CGROUPROOT}/{}/{}", &self.name, filename);
         match write!(file, "{}", val) {
-            Ok(v) => {
+            Ok(_) => {
                 println!("{} wrote to file {}", "Success".green(), file_path);
                 Ok(())
             },
-            Err(e) => Err("could not write to file {file_path}"),
+            Err(_) => Err("could not write to file {file_path}"),
         }
          
    
 }
 
 
-
+//write to cgroup.subtree_control with provided controllers (add or remove)
 pub fn modify_active_controller(val: &str) -> Result<(), &'static str> {
         
         
@@ -66,7 +69,7 @@ pub fn modify_active_controller(val: &str) -> Result<(), &'static str> {
             Ok(())
         },
         Some(code) => {
-            println!("{}", "Error".red());
+            println!("{} could not write to cgroup.subtree_control with {code}", "Error".red());
             Err("Could not create group")
         },
         _  => Err("Could not create group"),
@@ -74,6 +77,7 @@ pub fn modify_active_controller(val: &str) -> Result<(), &'static str> {
 
 }
 
+//add pid to a cgroup by writing to the cgroups cgroup.procs file
 pub fn append_pid_command(pid: &str, cgroup: &str) -> Result<(), &'static str> {
     let status = RootCommand::new("sh")
                         .arg("-c")
@@ -87,14 +91,14 @@ pub fn append_pid_command(pid: &str, cgroup: &str) -> Result<(), &'static str> {
             Ok(())
         },
         Some(code) => {
-            println!("{}", "Error".red());
-            Err("Could add pid to cgroup")
+            println!("{} could not write to cgroups.procs with {code}", "Error".red());
+            Err("Could not add pid to cgroup")
         },
         _  => Err("Could not add pid to cgroup"),
     }
 }
 
-
+//create a cgroup given a name
 pub fn create_cgroup(name: &str) -> Result<Cgroup, &'static str> {
  
     let status = RootCommand::new("sh")
@@ -117,7 +121,9 @@ pub fn create_cgroup(name: &str) -> Result<Cgroup, &'static str> {
 }
 
 
-
+//remove a cgroup given a name, feeds back a cgroup 
+//with deleted = 1 so that caller knows to remove from
+//cgroup holder
 pub fn remove_cgroup(name: &str) -> Option<Cgroup>{
   
     let status = RootCommand::new("sh")
@@ -148,7 +154,7 @@ pub fn remove_cgroup(name: &str) -> Option<Cgroup>{
 //rmdir {path_cgroup1} && rmdir {path_cgroup2}...
 //to allow for bulk deletion of cgroups as specified
 //in existing_cgroups.json additionally updates 
-//existing cgroups.json so that 
+//existing_cgroups.json so that it's up to date
 pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
 
     let mut command_string = "rmdir ".to_string();
@@ -195,25 +201,25 @@ pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
     
     println!("{:?}", cgroups);
 
-    let mut file = OpenOptions::new()
+    let file = OpenOptions::new()
         .create(true)
         .write(true)
-        .open("./existing_cgroups.json")
+        .open(PATHJSON.to_string())
         .unwrap();
 
     
 
     //read contents of json file before modifying
-    let lines = read_lines("./existing_cgroups.json".to_string());
+    let lines = read_lines(PATHJSON.to_string());
 
     drop(file);
 
-    fs::remove_file("existing_cgroups.json").expect("Couldn't delete existing_cgroups.json");
+    fs::remove_file(PATHJSON.to_string()).expect("Couldn't delete existing_cgroups.json");
 
     let mut file = OpenOptions::new()
         .create(true)
         .write(true)
-        .open("./existing_cgroups.json")
+        .open(PATHJSON.to_string())
         .unwrap();
 
     //only add cgroups that weren't deleted
@@ -236,18 +242,18 @@ pub fn bulk_remove_cgroup(cgroups: Vec<String>) {
 
 
 
-//runs on shutdown either from clean user controlled input
-//or when receiving a ctrl+c (a.k.a. SIGINT signal)
+//runs after cgroups are added or removed 
+//to make sure existing_cgroups.json is up to date
 pub fn file_cleanup(cgroups: & Vec<Cgroup>) {
     
     
     //delete existing file since cgroups is the most up to date
-    fs::remove_file("existing_cgroups.json").expect("Couldn't delete existing_cgroups.json");
+    fs::remove_file(PATHJSON.to_string()).expect("Couldn't delete existing_cgroups.json");
 
     let mut file = OpenOptions::new()
         .create(true)
         .write(true)
-        .open("./existing_cgroups.json")
+        .open(PATHJSON.to_string())
         .unwrap();
 
     //recreate file with up to date data

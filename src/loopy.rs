@@ -31,6 +31,7 @@ pub fn get_user_input(mut input: String) -> String {
 }
 
 
+//main loop handling user input to command line which calls open sub loops
 pub fn top_level_loop(cgroups: &mut Vec<Cgroup>, controllers: &mut Vec<String>) -> Option<Cgroup>{
 
     let mut input = String::new();
@@ -86,26 +87,33 @@ pub fn top_level_loop(cgroups: &mut Vec<Cgroup>, controllers: &mut Vec<String>) 
 }
 
 
+//to read from cgroup settings files for a specific cgroup/controller combo
 pub fn read_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<String>){
 
 
+    let mut controller_index = 0;
+    let mut controller_index_tuple_vec = Vec::new();
+
     //see which controller user wants to read from
-    print!("\n{}: ", "Available Controllers: ".blue());
+    print!("\n{}", "Available Controllers:\n".blue());
     for controller in controllers {
-        print!("{} ", controller);
+        println!("({}) {} ", controller_index, controller);
+        controller_index_tuple_vec.push((controller_index, controller.to_string()));
+        controller_index += 1;
     }
     let mut found = 0;
     let mut controller = String::new();
+    let mut user_index = String::new();
     while found == 0 {
-        println!("\n\nType the name of the controller you wish to read from (type .. to go back):");
-        controller = get_user_input(controller);
-        if controller == ".." {
+        println!("\n\nType the number corresponding to the controller you wish to read from (type .. to go back):");
+        user_index = get_user_input(user_index);
+        if user_index == ".." {
             return;
         }
-        for elem in controllers{
-            println!("{}", *elem);
-            if controller == *elem{
+        for i in 0..controller_index_tuple_vec.len() {
+            if user_index == controller_index_tuple_vec[i].0.to_string(){
                 found = 1;
+                controller =controller_index_tuple_vec[i].1.to_string();
                 break;
             }
         }
@@ -115,22 +123,30 @@ pub fn read_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<St
         }
     }
 
+
+    let mut cgroup_index = 0;
+    let mut cgroup_index_tuple_vec = Vec::new();
+
     //see which cgroup user wants to read from
-    print!("\n{}: ", "Available Cgroups: ".blue());
+    print!("\n{}", "Available Cgroups:\n".blue());
     for cgroup in &mut *cgroups {
-        print!("{} ", cgroup.name);
+        println!("({}) {} ", cgroup_index, cgroup.name);
+        cgroup_index_tuple_vec.push((cgroup_index, cgroup.name.to_string()));
+        cgroup_index += 1;
     }
     found = 0;
     let mut cgroup = String::new();
+    user_index = String::new();
     while found == 0 {
-        println!("\n\nType the name of the cgroup you wish to read from (type .. to go back):");
-        cgroup = get_user_input(cgroup);
-        if cgroup == ".." {
+        println!("\n\nType the number corresponding to the cgroup you wish to read from (type .. to go back):");
+        user_index = get_user_input(user_index);
+        if user_index == ".." {
             return;
         }
-        for i in 0..cgroups.len() {
-            if cgroup == cgroups[i].name{
+        for i in 0..cgroup_index_tuple_vec.len() {
+            if user_index == cgroup_index_tuple_vec[i].0.to_string(){
                 found = 1;
+                cgroup = cgroup_index_tuple_vec[i].1.to_string();
                 break;
             }
         }
@@ -154,24 +170,29 @@ pub fn read_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<St
         }
     }
 
+    let mut s_file_index = 0;
+    let mut s_file_index_tuple_vec = Vec::new();
 
     //see which settings file to read from 
     println!("\n{}\n", "Available Settings Files\n".blue());
-    // println!("{:?}", cgroups);
     for s_file in &filtered_paths {
-        println!("{} ", s_file);
+        println!("({}) {} ", s_file_index, s_file);
+        s_file_index_tuple_vec.push((s_file_index, s_file.to_string()));
+        s_file_index += 1;
     }
     found = 0;
     let mut s_file = String::new();
+    user_index = String::new();
     while found == 0 {
-        println!("\n\nType the name of the settings file you wish to read from (type .. to go back):");
-        s_file = get_user_input(s_file);
-        if s_file == ".." {
+        println!("\n\nType the number corresponding to the settings file you wish to read from (type .. to go back):");
+        user_index= get_user_input(user_index);
+        if user_index == ".." {
             return;
         }
-        for i in 0..filtered_paths.len() {
-            if s_file == *filtered_paths[i]{
+        for i in 0..s_file_index_tuple_vec.len() {
+            if user_index == s_file_index_tuple_vec[i].0.to_string(){
                 found = 1;
+                s_file = s_file_index_tuple_vec[i].1.to_string();
                 break;
             }
         }
@@ -183,33 +204,39 @@ pub fn read_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<St
 
 
     match read_file_contents(&s_file) {
-        Ok(contents) => println!("\n{}{}", contents, "Value is: ".green()),
+        Ok(contents) => println!("\n{}{}", "Value is: ".green(), contents),
         _ => println!("No data from file {s_file}"),
     }
 
 }
 
-
+//to update cgroup settings files for a specific cgroup/controller combo
 pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<String>){
 
 
-    //see which controller user wants to choose from
-    print!("\n{}: ", "Available Controllers: ".blue());
+    let mut controller_index = 0;
+    let mut controller_index_tuple_vec = Vec::new();
+
+    //see which controller user wants to update
+    print!("\n{}", "Available Controllers:\n".blue());
     for controller in controllers {
-        print!("{} ", controller);
+        println!("({}) {} ", controller_index, controller);
+        controller_index_tuple_vec.push((controller_index, controller.to_string()));
+        controller_index += 1;
     }
     let mut found = 0;
     let mut controller = String::new();
+    let mut user_index = String::new();
     while found == 0 {
-        println!("\n\nType the name of the controller you wish to read from (type .. to go back):");
-        controller = get_user_input(controller);
-        if controller == ".." {
+        println!("\n\nType the number corresponding to the controller you wish to update (type .. to go back):");
+        user_index = get_user_input(user_index);
+        if user_index == ".." {
             return;
         }
-        for elem in controllers{
-            println!("{}", *elem);
-            if controller == *elem{
+        for i in 0..controller_index_tuple_vec.len() {
+            if user_index == controller_index_tuple_vec[i].0.to_string(){
                 found = 1;
+                controller =controller_index_tuple_vec[i].1.to_string();
                 break;
             }
         }
@@ -219,22 +246,29 @@ pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<
         }
     }
 
-    //see which cgroup user wants to choose from
-    print!("\n{}: ", "Available Cgroups: ".blue());
+    let mut cgroup_index = 0;
+    let mut cgroup_index_tuple_vec = Vec::new();
+
+    //see which cgroup user wants to read from
+    print!("\n{}", "Available Cgroups:\n".blue());
     for cgroup in &mut *cgroups {
-        print!("{} ", cgroup.name);
+        println!("({}) {} ", cgroup_index, cgroup.name);
+        cgroup_index_tuple_vec.push((cgroup_index, cgroup.name.to_string()));
+        cgroup_index += 1;
     }
     found = 0;
     let mut cgroup = String::new();
+    user_index = String::new();
     while found == 0 {
-        println!("\n\nType the name of the cgroup you wish to read from (type .. to go back):");
-        cgroup = get_user_input(cgroup);
-        if cgroup == ".." {
+        println!("\n\nType the number corresponding to the cgroup you wish to read from (type .. to go back):");
+        user_index = get_user_input(user_index);
+        if user_index == ".." {
             return;
         }
-        for i in 0..cgroups.len() {
-            if cgroup == cgroups[i].name{
+        for i in 0..cgroup_index_tuple_vec.len() {
+            if user_index == cgroup_index_tuple_vec[i].0.to_string(){
                 found = 1;
+                cgroup = cgroup_index_tuple_vec[i].1.to_string();
                 break;
             }
         }
@@ -259,23 +293,29 @@ pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<
     }
 
 
+    let mut s_file_index = 0;
+    let mut s_file_index_tuple_vec = Vec::new();
+
     //see which settings file to update
     println!("\n{}\n", "Available Settings Files\n".blue());
-    // println!("{:?}", cgroups);
     for s_file in &filtered_paths {
-        println!("{} ", s_file);
+        println!("({}) {} ", s_file_index, s_file);
+        s_file_index_tuple_vec.push((s_file_index, s_file.to_string()));
+        s_file_index += 1;
     }
     found = 0;
     let mut s_file = String::new();
+    let mut user_index = String::new();
     while found == 0 {
-        println!("\n\nType the name of the settings file you wish to read from (type .. to go back):");
-        s_file = get_user_input(s_file);
-        if s_file == ".." {
+        println!("\n\nType the number corresponding to the settings file you wish to update (type .. to go back):");
+        user_index= get_user_input(user_index);
+        if user_index == ".." {
             return;
         }
-        for i in 0..filtered_paths.len() {
-            if s_file == *filtered_paths[i]{
+        for i in 0..s_file_index_tuple_vec.len() {
+            if user_index == s_file_index_tuple_vec[i].0.to_string(){
                 found = 1;
+                s_file = s_file_index_tuple_vec[i].1.to_string();
                 break;
             }
         }
@@ -297,6 +337,7 @@ pub fn update_cgroup_settings_loop(cgroups: &mut Vec<Cgroup>, controllers: &Vec<
 }
 
 
+//to delete a specific cgroup
 fn delete_cgroup_loop(cgroups: &mut Vec<Cgroup>) -> Option<Cgroup> {
     //see which cgroup user wants to  delete
     print!("\n{}: ", "Available Cgroups: ".blue());
@@ -328,7 +369,9 @@ fn delete_cgroup_loop(cgroups: &mut Vec<Cgroup>) -> Option<Cgroup> {
 }
 
 
-
+//to modify active cgroup controllers 
+#[allow(dead_code)]
+#[allow(unused_assignments)]
 pub fn modify_controllers_loop(current_controllers: Option<&mut Vec<String>>) -> Option<Vec<String>> {
 
     let mut avail_controllers: String = "".to_string();
@@ -376,10 +419,10 @@ pub fn modify_controllers_loop(current_controllers: Option<&mut Vec<String>>) ->
                 loop{
                     input = get_user_input(input);
                     if input == "Y" || input == "y"{
-                        modify_active_controller(&format!("+{}", &controller));
+                        modify_active_controller(&format!("+{}", &controller)).expect("error modifying active controllers");
                         break;
                     }else if input == "N" || input == "n"{
-                        modify_active_controller(&format!("-{}", &controller));
+                        modify_active_controller(&format!("-{}", &controller)).expect("error modifying active controllers");
                         break;
                     }else if input == "L" || input == "l" {
                         break;
@@ -399,7 +442,7 @@ pub fn modify_controllers_loop(current_controllers: Option<&mut Vec<String>>) ->
     match read_file_contents(&format!("{CGROUPROOT}/cgroup.subtree_control")){
         Ok(contents) => {
             active_controllers = contents.to_string();
-            println!("{} {}", "Active Controllers:".blue(), &active_controllers);
+            println!("\n{}\n{}", "Active Controllers:".blue(), &active_controllers);
         },
         _ => {
             println!("{} could not read {CGROUPROOT}/cgroup.subtree_control, please check that cgroups are mounted correctly... Terminating...", "Error".red());
@@ -407,10 +450,7 @@ pub fn modify_controllers_loop(current_controllers: Option<&mut Vec<String>>) ->
         },
     }
 
-    // if current_controllers.is_none() {
-    //     current_controllers.clear();
-        
-    // }
+   
 
     match current_controllers {
         Some(mut_input) => {
@@ -455,7 +495,7 @@ pub fn modify_controllers_loop(current_controllers: Option<&mut Vec<String>>) ->
 
 
 
-
+//to add pid to a cgroup
 pub fn add_pid_loop(cgroups: &mut Vec<Cgroup>) {
     //see which cgroup user wants to choose from
     print!("\n{}: ", "Available Cgroups: ".blue());
@@ -491,7 +531,7 @@ pub fn add_pid_loop(cgroups: &mut Vec<Cgroup>) {
             if pid == "000" {
                 return;
             }else{
-                append_pid_command(&pid, &cgroup);
+                append_pid_command(&pid, &cgroup).expect("couldn't execute append pid command");
             }
         }else{
             println!("Invalid pid string, only numbers allowed... Please try again")
